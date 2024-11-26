@@ -12,6 +12,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 import os
 from dotenv import load_dotenv
+from datetime import datetime
 # Optional: add contact me email functionality (Day 60)
 # import smtplib
 
@@ -131,6 +132,7 @@ def admin_only(f):
 # Register new users into the User database
 @app.route('/register', methods=["GET", "POST"])
 def register():
+    year = datetime.now().year
     form = RegisterForm()
     if form.validate_on_submit():
 
@@ -157,11 +159,12 @@ def register():
         # This line will authenticate the user with Flask-Login
         login_user(new_user)
         return redirect(url_for("get_all_posts"))
-    return render_template("register.html", form=form, current_user=current_user)
+    return render_template("register.html", form=form, current_user=current_user, year=year)
 
 
 @app.route('/login', methods=["GET", "POST"])
 def login():
+    year = datetime.now().year
     form = LoginForm()
     if form.validate_on_submit():
         password = form.password.data
@@ -180,7 +183,7 @@ def login():
             login_user(user)
             return redirect(url_for('get_all_posts'))
 
-    return render_template("login.html", form=form, current_user=current_user)
+    return render_template("login.html", form=form, current_user=current_user, year=year)
 
 
 @app.route('/logout')
@@ -191,14 +194,16 @@ def logout():
 
 @app.route('/')
 def get_all_posts():
+    year = datetime.now().year
     result = db.session.execute(db.select(BlogPost))
     posts = result.scalars().all()
-    return render_template("index.html", all_posts=posts, current_user=current_user)
+    return render_template("index.html", all_posts=posts, current_user=current_user, year=year)
 
 
 # Add a POST method to be able to post comments
 @app.route("/post/<int:post_id>", methods=["GET", "POST"])
 def show_post(post_id):
+    year = datetime.now().year
     requested_post = db.get_or_404(BlogPost, post_id)
     # Add the CommentForm to the route
     comment_form = CommentForm()
@@ -215,13 +220,14 @@ def show_post(post_id):
         )
         db.session.add(new_comment)
         db.session.commit()
-    return render_template("post.html", post=requested_post, current_user=current_user, form=comment_form)
+    return render_template("post.html", post=requested_post, current_user=current_user, form=comment_form, year=year)
 
 
 # Use a decorator so only an admin user can create new posts
 @app.route("/new-post", methods=["GET", "POST"])
 @admin_only
 def add_new_post():
+    year = datetime.now().year
     form = CreatePostForm()
     if form.validate_on_submit():
         new_post = BlogPost(
@@ -235,12 +241,13 @@ def add_new_post():
         db.session.add(new_post)
         db.session.commit()
         return redirect(url_for("get_all_posts"))
-    return render_template("make-post.html", form=form, current_user=current_user)
+    return render_template("make-post.html", form=form, current_user=current_user, year=year)
 
 
 # Use a decorator so only an admin user can edit a post
 @app.route("/edit-post/<int:post_id>", methods=["GET", "POST"])
 def edit_post(post_id):
+    year = datetime.now().year
     post = db.get_or_404(BlogPost, post_id)
     edit_form = CreatePostForm(
         title=post.title,
@@ -257,7 +264,7 @@ def edit_post(post_id):
         post.body = edit_form.body.data
         db.session.commit()
         return redirect(url_for("show_post", post_id=post.id))
-    return render_template("make-post.html", form=edit_form, is_edit=True, current_user=current_user)
+    return render_template("make-post.html", form=edit_form, is_edit=True, current_user=current_user, year=year)
 
 
 # Use a decorator so only an admin user can delete a post
@@ -272,12 +279,14 @@ def delete_post(post_id):
 
 @app.route("/about")
 def about():
-    return render_template("about.html", current_user=current_user)
+    year = datetime.now().year
+    return render_template("about.html", current_user=current_user, year=year)
 
 
 @app.route("/contact", methods=["GET", "POST"])
 def contact():
-    return render_template("contact.html", current_user=current_user)
+    year = datetime.now().year
+    return render_template("contact.html", current_user=current_user, year=year)
 
 # Optional: You can include the email sending code from Day 60:
 # DON'T put your email and password here directly! The code will be visible when you upload to Github.
@@ -288,11 +297,12 @@ def contact():
 
 # @app.route("/contact", methods=["GET", "POST"])
 # def contact():
+#     year = datetime.now().year
 #     if request.method == "POST":
 #         data = request.form
 #         send_email(data["name"], data["email"], data["phone"], data["message"])
-#         return render_template("contact.html", msg_sent=True)
-#     return render_template("contact.html", msg_sent=False)
+#         return render_template("contact.html", msg_sent=True, year=year)
+#     return render_template("contact.html", msg_sent=False, year=year)
 #
 #
 # def send_email(name, email, phone, message):
